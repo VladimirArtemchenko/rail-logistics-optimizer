@@ -37,6 +37,17 @@ const REQUIRED_HEADERS: Record<(typeof REQUIRED_SHEETS)[number], string[]> = {
   'Нормы маршрутов': ['Регион назначения', 'Норма'],
 };
 
+const HEADER_ALIASES: Record<string, string[]> = {
+  Норма: [
+    'Норма маршрута',
+    'Норма вагонов',
+    'Норма, ваг.',
+    'Норма маршрута, ваг.',
+    'Норма маршрута, вагонов',
+    'Размер маршрута',
+  ],
+};
+
 let xlsxPromise: Promise<XlsxModule> | undefined;
 
 export class WorkbookImportError extends Error {
@@ -66,6 +77,23 @@ async function loadXlsx(): Promise<XlsxModule> {
 
 const str = (value: unknown) => String(value ?? '').trim();
 const num = (value: unknown) => Number(value);
+const normalizeHeader = (value: unknown) =>
+  str(value)
+    .replace(/\u00a0/g, ' ')
+    .replace(/[.,;:()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('ru');
+
+function columnValue(row: Record<string, unknown>, header: string) {
+  const acceptedHeaders = [header, ...(HEADER_ALIASES[header] ?? [])].map(
+    normalizeHeader,
+  );
+  const entry = Object.entries(row).find(([key]) =>
+    acceptedHeaders.includes(normalizeHeader(key)),
+  );
+  return entry?.[1];
+}
 
 export async function importWorkbook(file: File): Promise<AppData> {
   if (!/\.xlsx?$/i.test(file.name)) {
@@ -119,7 +147,7 @@ export async function importWorkbook(file: File): Promise<AppData> {
       .filter((row) => str(row['Регион назначения']) !== 'DEFAULT')
       .map((row) => ({
         region: str(row['Регион назначения']),
-        norm: num(row['Норма']),
+        norm: num(columnValue(row, 'Норма')),
       }));
     const defaultNorm = normRows.find(
       (row) => str(row['Регион назначения']) === 'DEFAULT',
@@ -134,7 +162,9 @@ export async function importWorkbook(file: File): Promise<AppData> {
       settings: {
         backDays: 2,
         forwardDays: 2,
-        defaultNorm: num(defaultNorm?.['Норма'] || 72),
+        defaultNorm: num(
+          (defaultNorm && columnValue(defaultNorm, 'Норма')) || 72,
+        ),
       },
       fileName: file.name,
       ...(period ? { period } : {}),
@@ -165,9 +195,12 @@ function validateWorkbookStructure(
       defval: '',
       blankrows: false,
     });
-    const headers = new Set(headerRow.map(str));
+    const headers = new Set(headerRow.map(normalizeHeader));
     const missingHeaders = REQUIRED_HEADERS[name].filter(
-      (header) => !headers.has(header),
+      (header) =>
+        ![header, ...(HEADER_ALIASES[header] ?? [])].some((candidate) =>
+          headers.has(normalizeHeader(candidate)),
+        ),
     );
     if (missingHeaders.length) {
       throw new WorkbookImportError(
