@@ -1,0 +1,9 @@
+export type PlanRow={id:string;date:string;region:string;station:string;recipient?:string;cargoCode:string;cargoName?:string;frontCode:string;wagons:number};
+export type Front={code:string;name:string;placementCapacity:number;dailyCapacity:number};
+export type Capability={frontCode:string;cargoCode:string};
+export type RouteNorm={region:string;norm:number};
+export type Settings={backDays:number;forwardDays:number;defaultNorm:number};
+export type Route={id:string;date:string;region:string;frontCode:string;wagons:number;norm:number;source:'INITIAL'|'OPTIMIZED';placements:number;components:{rowId:string;cargoCode:string;wagons:number}[]};
+export type Movement={rowId:string;cargoCode:string;wagons:number;oldDate:string;newDate:string;oldFront:string;newFront:string;routeId?:string;reason:string};
+export type OptimizationResult={routes:Route[];potentialRoutes:Route[];movements:Movement[];remainders:PlanRow[];stats:{total:number;routedBefore:number;routedAfter:number;readyRoutes:number;newRoutes:number;potential:number;movedWagons:number}};
+export type AppData={rows:PlanRow[];fronts:Front[];capabilities:Capability[];norms:RouteNorm[];settings:Settings;result?:OptimizationResult;fileName?:string;period?:string};
