@@ -14,6 +14,7 @@ import {
   CardContent,
   Chip,
   Container,
+  CssBaseline,
   LinearProgress,
   Paper,
   Stack,
@@ -97,6 +98,7 @@ export default function Dashboard() {
 
   return (
     <>
+      <CssBaseline />
       <AppBar position="static" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
